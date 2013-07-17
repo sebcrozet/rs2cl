@@ -1,0 +1,18 @@
+#[link(name     = "rs2cl"
+       , vers   = "0.0"
+       , author = "Sébastien Crozet"
+       , uuid   = "b160af4d-e7e8-4821-8297-a62bc269d921")];
+#[crate_type = "lib"];
+#[warn(non_camel_case_types)]
+
+extern mod std;
+extern mod nalgebra;
+
+pub mod expr;
+pub mod kernel;
+pub mod cl_logic;
+
+mod demo
+{
+  mod physics;
+}
