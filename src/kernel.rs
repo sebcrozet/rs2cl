@@ -2,6 +2,7 @@ use expr::{Location, Expr, TypedExpr};
 use expr;
 use branching;
 use indent::Indent;
+use cl_type::CLType;
 
 pub struct Kernel
 {
@@ -31,7 +32,7 @@ impl Kernel
     self.exprs.push(expr as @Expr);
   }
 
-  pub fn param<T: 'static>(@mut self, location: Location) -> @TypedExpr<T>
+  pub fn param<T: 'static + CLType>(@mut self, location: Location) -> @TypedExpr<T>
   {
     let res = self.named_param(~"rs2cl_p" + self.last_param_id.to_str(), location);
 
@@ -40,7 +41,7 @@ impl Kernel
     res
   }
 
-  pub fn var<T: 'static>(@mut self) -> @TypedExpr<T>
+  pub fn var<T: 'static + CLType>(@mut self) -> @TypedExpr<T>
   {
     let res = self.named_var(~"rs2cl_v" + self.last_var_id.to_str());
 
@@ -49,7 +50,7 @@ impl Kernel
     res
   }
 
-  pub fn named_param<T: 'static>(@mut self, name: ~str, location: Location) -> @TypedExpr<T>
+  pub fn named_param<T: 'static + CLType>(@mut self, name: ~str, location: Location) -> @TypedExpr<T>
   {
     self.params.push(@expr::Param::<T>(name.clone(), location) as @Expr);
 
@@ -57,7 +58,7 @@ impl Kernel
     @expr::LValue(expr::LVariable(name, location), self)
   }
 
-  pub fn named_var<T: 'static>(@mut self, name: ~str) -> @TypedExpr<T>
+  pub fn named_var<T: 'static + CLType>(@mut self, name: ~str) -> @TypedExpr<T>
   {
     self.exprs.push(@expr::Declare::<T>(name.clone(), expr::Nowhere) as @Expr);
 
@@ -96,7 +97,7 @@ impl ToStr for Kernel
       None => { },
     }
 
-    res = res + ")\n";
+    res = res + "\n)\n";
 
     // body
     res = res + "{\n";

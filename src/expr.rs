@@ -4,6 +4,7 @@ use nalgebra::traits::dot::Dot;
 use kernel;
 use indent::Indent;
 use cl_logic::{ClEq, ClOrd};
+use cl_type::CLType;
 
 pub enum Location
 {
@@ -11,6 +12,20 @@ pub enum Location
   Local,
   Private,
   Nowhere
+}
+
+impl ToStr for Location
+{
+  fn to_str(&self) -> ~str
+  {
+    match *self
+    {
+      Global  => ~"__global ",
+      Local   => ~"__local ",
+      Private => ~"__private ",
+      Nowhere => ~""
+    }
+  }
 }
 
 pub trait Expr
@@ -38,13 +53,13 @@ pub enum LValue<T>
 {
   // LValue
   LVariable(~str, Location),
-  LIndexed(@Expr, @TypedExpr<uint>),
+  LIndexed(@Expr, @TypedExpr<u32>),
   LStrExpr(~str), // NOTE: unsafe
 }
 
 pub enum RValue<T>
 {
-  RIndexed(@Expr, @TypedExpr<uint>),
+  RIndexed(@Expr, @TypedExpr<u32>),
   RLiteral(T),
   RStrExpr(~str), // NOTE: unsafe
   ParenthesedOp(@Expr)
@@ -115,22 +130,22 @@ enum TernOp
   Clamp
 }
 
-impl<T> Expr for UntypedExpr<T>
+impl<T: CLType> Expr for UntypedExpr<T>
 {
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
   {
     indent.to_str() +
     match *self
     {
-      Param(ref name,   ref location) => ~"??location?? ??type?? " + *name,
-      Declare(ref name, ref location) => ~"??location?? ??type?? " + *name + ";",
+      Param(ref name,   ref location) => location.to_str() + CLType::to_cl_type_str::<T>() + " " + *name,
+      Declare(ref name, ref location) => location.to_str() + CLType::to_cl_type_str::<T>() + " " + *name + ";",
       Assign(ref left,  ref right)    => left.to_cl_str(indent) + " = " + right.to_cl_str(indent) + ";",
       StrExpr(ref s)                  => s.clone()
     }
   }
 }
 
-impl<T> Expr for TypedExpr<T>
+impl<T: CLType> Expr for TypedExpr<T>
 {
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
   {
@@ -142,14 +157,14 @@ impl<T> Expr for TypedExpr<T>
   }
 }
 
-impl<T> Expr for RValue<T>
+impl<T: CLType> Expr for RValue<T>
 {
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
   {
     match *self
     {
       RIndexed(ref val, ref idx) => val.to_cl_str(indent) + "[" + idx.to_cl_str(indent) + "]",
-      RLiteral(ref val)          => ~"??literal??",
+      RLiteral(ref val)          => val.to_cl_literal_str(),
       RStrExpr(ref expr)         => expr.clone(),
       ParenthesedOp(ref expr)    => "(" + expr.to_cl_str(indent) + ")"
     }
@@ -169,7 +184,7 @@ impl<T> Expr for LValue<T>
   }
 }
 
-impl<N1, N2, N3> Expr for BinaryOperation<N1, N2, N3>
+impl<N1: CLType, N2: CLType, N3> Expr for BinaryOperation<N1, N2, N3>
 {
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
   {
@@ -195,7 +210,7 @@ impl<N1, N2, N3> Expr for BinaryOperation<N1, N2, N3>
   }
 }
 
-impl<N1, N2, N3, N4> Expr for TernaryOperation<N1, N2, N3, N4>
+impl<N1: CLType, N2: CLType, N3: CLType, N4> Expr for TernaryOperation<N1, N2, N3, N4>
 {
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
   {
@@ -210,9 +225,9 @@ impl<N1, N2, N3, N4> Expr for TernaryOperation<N1, N2, N3, N4>
   }
 }
 
-impl<T: 'static> Index<@TypedExpr<uint>, @TypedExpr<T>> for @TypedExpr<~[T]>
+impl<T: 'static + CLType> Index<@TypedExpr<u32>, @TypedExpr<T>> for @TypedExpr<~[T]>
 {
-  fn index(&self, idx: &@TypedExpr<uint>) -> @TypedExpr<T>
+  fn index(&self, idx: &@TypedExpr<u32>) -> @TypedExpr<T>
   {
     match **self
     {
@@ -222,7 +237,7 @@ impl<T: 'static> Index<@TypedExpr<uint>, @TypedExpr<T>> for @TypedExpr<~[T]>
   }
 }
 
-impl<T: 'static> TypedExpr<T>
+impl<T: 'static + CLType> TypedExpr<T>
 {
   pub fn assign(@self, val: @TypedExpr<T>) -> @UntypedExpr<T>
   {
@@ -273,35 +288,35 @@ impl<N: One> One for @TypedExpr<N>
   { @RValue(RLiteral(One::one())) }
 }
 
-impl<N1: 'static + Add<N2, N3>, N2: 'static, N3: 'static>
+impl<N1: 'static + Add<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
 Add<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
 {
   pub fn add(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N1, N2, N3>(*self, *other, Plus) as @Expr)) }
 }
 
-impl<N1: 'static + Sub<N2, N3>, N2: 'static, N3: 'static>
+impl<N1: 'static + Sub<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
 Sub<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
 {
   pub fn sub(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N1, N2, N3>(*self, *other, Minus) as @Expr)) }
 }
 
-impl<N1: 'static + Mul<N2, N3>, N2: 'static, N3: 'static>
+impl<N1: 'static + Mul<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
 Mul<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
 {
   pub fn mul(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N1, N2, N3>(*self, *other, Multiply) as @Expr)) }
 }
 
-impl<N1: 'static + Div<N2, N3>, N2: 'static, N3: 'static>
+impl<N1: 'static + Div<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
 Div<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
 {
   pub fn div(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N1, N2, N3>(*self, *other, Divide) as @Expr)) }
 }
 
-impl<N: 'static, V: 'static> ScalarMul<@TypedExpr<N>> for @TypedExpr<V>
+impl<N: 'static + CLType, V: 'static + CLType + ScalarMul<N>> ScalarMul<@TypedExpr<N>> for @TypedExpr<V>
 {
   pub fn scalar_mul(&self, val: &@TypedExpr<N>) -> @TypedExpr<V>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<V, N, V>(*self, *val, Multiply) as @Expr)) }
@@ -313,7 +328,7 @@ impl<N: 'static, V: 'static> ScalarMul<@TypedExpr<N>> for @TypedExpr<V>
   }
 }
 
-impl<N: 'static + Eq> ClEq<@TypedExpr<bool>> for @TypedExpr<N>
+impl<N: 'static + Eq + CLType> ClEq<@TypedExpr<bool>> for @TypedExpr<N>
 {
   pub fn cl_eq(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N, N, bool>(*self, *other, Estrict) as @Expr)) }
@@ -322,7 +337,7 @@ impl<N: 'static + Eq> ClEq<@TypedExpr<bool>> for @TypedExpr<N>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N, N, bool>(*self, *other, NEstrict) as @Expr)) }
 }
 
-impl<N: 'static + Ord> ClOrd<@TypedExpr<bool>> for @TypedExpr<N>
+impl<N: 'static + Ord + CLType> ClOrd<@TypedExpr<bool>> for @TypedExpr<N>
 {
   pub fn cl_ge(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N, N, bool>(*self, *other, Geq) as @Expr)) }
@@ -337,13 +352,13 @@ impl<N: 'static + Ord> ClOrd<@TypedExpr<bool>> for @TypedExpr<N>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N, N, bool>(*self, *other, Lstrict) as @Expr)) }
 }
 
-impl<V: 'static + Dot<N>, N: 'static> Dot<@TypedExpr<N>> for @TypedExpr<V>
+impl<V: 'static + Dot<N> + CLType, N: 'static + CLType> Dot<@TypedExpr<N>> for @TypedExpr<V>
 {
   fn dot(&self, other: &@TypedExpr<V>) -> @TypedExpr<N>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<V, V, N>(*self, *other, Dot) as @Expr)) }
 }
 
-impl<N: 'static + Orderable> Orderable for @TypedExpr<N>
+impl<N: 'static + Orderable + CLType> Orderable for @TypedExpr<N>
 {
   fn min(&self, other: &@TypedExpr<N>) -> @TypedExpr<N>
   { @RValue(ParenthesedOp(@BinaryOperation::new::<N, N, N>(*self, *other, Min) as @Expr)) }
