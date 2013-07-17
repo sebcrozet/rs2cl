@@ -83,12 +83,30 @@ impl Kernel
     @expr::LValue(expr::LVariable(name, expr::Nowhere), self)
   }
 
+  fn var_nodecl<T: 'static + CLType>(@mut self) -> @TypedExpr<T>
+  {
+    let res = @expr::LValue(expr::LVariable(~"rs2cl_v" + self.last_var_id.to_str(), expr::Nowhere), self);
+
+    self.last_var_id = self.last_var_id + 1;
+
+    res
+  }
+
   // FIXME: implement else_ and elif_
   pub fn if_(@mut self, cond: @TypedExpr<bool>, f: &fn())
   {
     self.exprs.push(@branching::If(cond) as @Expr);
     f();
-    self.exprs.push(@branching::EndIf as @Expr);
+    self.exprs.push(@branching::End as @Expr);
+  }
+
+  pub fn iterate(@mut self, begin: @TypedExpr<u32>, end: @TypedExpr<u32>, f: &fn(@TypedExpr<u32>))
+  {
+    let i = self.var_nodecl::<u32>();
+
+    self.exprs.push(@branching::Iterate::new(begin, end, i) as @Expr);
+    f(i);
+    self.exprs.push(@branching::End as @Expr);
   }
 }
 

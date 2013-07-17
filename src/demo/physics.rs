@@ -47,6 +47,7 @@ fn lin_pgs_kernel()
   /*
    * Params
    */
+  let num        = k.named_param::<u32>(~"num", expr::Const);
   let id1s       = k.named_param::<~[u32]>(~"id1s", expr::Global);
   let id2s       = k.named_param::<~[u32]>(~"id2s", expr::Global);
   let normals    = k.named_param::<~[CLVec3f64]>(~"normals", expr::Global);
@@ -58,45 +59,42 @@ fn lin_pgs_kernel()
   let pmasses    = k.named_param::<~[f64]>(~"pmasses", expr::Global);
   let MJLambdas  = k.named_param::<~[CLVec3f64]>(~"MJLambdas", expr::Global);
 
-  /*
-   * Locals
-   */
-  let id         = k.named_var::<u32>(~"id");
-  let d_lambda_i = k.named_var::<f64>(~"d_lambda_i");
-  let id1        = k.named_var::<u32>(~"id1");
-  let id2        = k.named_var::<u32>(~"id2");
+  do k.iterate(expr::literal(0), num) |i|
+  {
+    let d_lambda_i = k.named_var::<f64>(~"d_lambda_i");
+    let id1        = k.named_var::<u32>(~"id1");
+    let id2        = k.named_var::<u32>(~"id2");
 
-  id.assign(k.get_global_id(0));
+    id1.assign(id1s[i]);
+    id2.assign(id2s[i]);
 
-  id1.assign(id1s[id]);
-  id2.assign(id2s[id]);
+    /*
+     * The solver itself
+     */
+    d_lambda_i.assign(objectives[i]);
 
-  /*
-   * The solver itself
-   */
-  d_lambda_i.assign(objectives[id]);
+    do k.if_(id1.cl_ge(&Zero::zero()))
+    { d_lambda_i.assign(d_lambda_i + normals[i].dot(&MJLambdas[id1])); }
 
-  do k.if_(id1.cl_ge(&Zero::zero()))
-  { d_lambda_i.assign(d_lambda_i + normals[id].dot(&MJLambdas[id1])); }
+    do k.if_(id2.cl_ge(&Zero::zero()))
+    { d_lambda_i.assign(d_lambda_i - normals[i].dot(&MJLambdas[id2])); }
 
-  do k.if_(id2.cl_ge(&Zero::zero()))
-  { d_lambda_i.assign(d_lambda_i - normals[id].dot(&MJLambdas[id2])); }
+    d_lambda_i.assign(d_lambda_i / pmasses[i]);
 
-  d_lambda_i.assign(d_lambda_i / pmasses[id]);
+    let lambda_i_0 = k.var::<f64>();
 
-  let lambda_i_0 = k.var::<f64>();
+    lambda_i_0.assign(impulses[i]);
 
-  lambda_i_0.assign(impulses[id]);
+    impulses[i].assign((lambda_i_0 + d_lambda_i).clamp(&lobounds[i], &hibounds[i]));
 
-  impulses[id].assign((lambda_i_0 + d_lambda_i).clamp(&lobounds[id], &hibounds[id]));
+    d_lambda_i.assign(impulses[i] - lambda_i_0);
 
-  d_lambda_i.assign(impulses[id] - lambda_i_0);
+    do k.if_(id1.cl_ge(&Zero::zero()))
+    { MJLambdas[id1].assign(MJLambdas[id1] - normals[i].scalar_mul(&(inv_masses[id1] * d_lambda_i))); }
 
-  do k.if_(id1.cl_ge(&Zero::zero()))
-  { MJLambdas[id1].assign(MJLambdas[id1] - normals[id].scalar_mul(&(inv_masses[id1] * d_lambda_i))); }
-
-  do k.if_(id2.cl_ge(&Zero::zero()))
-  { MJLambdas[id2].assign(MJLambdas[id2] + normals[id].scalar_mul(&(inv_masses[id2] * d_lambda_i))); }
+    do k.if_(id2.cl_ge(&Zero::zero()))
+    { MJLambdas[id2].assign(MJLambdas[id2] + normals[i].scalar_mul(&(inv_masses[id2] * d_lambda_i))); }
+  }
 
   println(k.to_str());
 }
