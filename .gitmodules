@@ -1,3 +1,6 @@
 [submodule "nalgebra"]
 	path = nalgebra
 	url = git://github.com/sebcrozet/nalgebra.git
+[submodule "rust-opencl"]
+	path = rust-opencl
+	url = git://github.com/sebcrozet/rust-opencl.git

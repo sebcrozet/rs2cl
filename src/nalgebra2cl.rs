@@ -1,13 +1,20 @@
 // XXX: this should be a separate library?
+use std::libc;
+use std::sys;
+use std::ptr;
+use std::num::Zero;
 use nalgebra::traits::scalar_op::ScalarMul;
+use nalgebra::traits::norm::Norm;
 use nalgebra::traits::dot::Dot;
 use nalgebra::vec::Vec3;
 use cl_type::CLType;
+use OpenCL;
 
 // FIXME make this generic wrt the float type?
+#[deriving(Eq, ToStr, Clone)]
 pub struct CLVec3f64
 {
-  priv val:     Vec3<f64>,
+  val:          Vec3<f64>,
   priv padding: f64
 }
 
@@ -19,6 +26,15 @@ impl CLVec3f64
       val:     val,
       padding: 0.0
     }
+  }
+}
+
+impl OpenCL::vector::VectorType for CLVec3f64;
+impl OpenCL::hl::KernelArg for CLVec3f64
+{
+  fn get_value(&self) -> (libc::size_t, *libc::c_void)
+  {
+    (sys::size_of::<CLVec3f64>() as libc::size_t, ptr::to_unsafe_ptr(self) as *libc::c_void)
   }
 }
 
@@ -39,6 +55,30 @@ impl CLType for CLVec3f64
 }
 
 // trait implementation forwarding
+impl Zero for CLVec3f64
+{
+  fn zero() -> CLVec3f64
+  { CLVec3f64::new(Zero::zero()) }
+
+  fn is_zero(&self) -> bool
+  { self.val.is_zero() }
+}
+
+impl Norm<f64> for CLVec3f64
+{
+  fn norm(&self) -> f64
+  { self.val.norm() }
+
+  fn sqnorm(&self) -> f64
+  { self.val.sqnorm() }
+
+  fn normalized(&self) -> CLVec3f64
+  { CLVec3f64::new(self.val.normalized()) }
+
+  fn normalize(&mut self) -> f64
+  { self.val.normalize() }
+}
+
 impl Dot<f64> for CLVec3f64
 {
   fn dot(&self, other: &CLVec3f64) -> f64

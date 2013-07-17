@@ -11,6 +11,7 @@ pub enum Location
   Global,
   Local,
   Private,
+  Const, // FIXME: this is not really a location but a qualifier…
   Nowhere
 }
 
@@ -23,6 +24,7 @@ impl ToStr for Location
       Global  => ~"__global ",
       Local   => ~"__local ",
       Private => ~"__private ",
+      Const   => ~"const ",
       Nowhere => ~""
     }
   }
