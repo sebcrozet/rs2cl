@@ -12,12 +12,16 @@ use cl_logic::ClOrd;
 use expr;
 #[test]
 use nalgebra2cl::*;
+#[test]
+use pragma;
 
 // test
 // #[test]
 // fn integration_kernel() -> ()
 // {
 //   let k          = @mut Kernel::new(~"integrate");
+// 
+//   k.enable_extension(pragma::cl_khr_fp64);
 // 
 //   let velocities = k.named_param::<~[CLVec3f64]>(~"velocities", expr::Global);
 //   let positions  = k.named_param::<~[CLVec3f64]>(~"positions", expr::Global);
@@ -38,8 +42,7 @@ fn lin_pgs_kernel()
 {
   let k = @mut Kernel::new(~"lin_pgs_solve");
 
-  // FIXME: let id = k.global_id();
-  let id = expr::literal(0u32);
+  k.enable_extension(pragma::cl_khr_fp64);
 
   /*
    * Params
@@ -58,9 +61,12 @@ fn lin_pgs_kernel()
   /*
    * Locals
    */
-  let mut d_lambda_i = k.named_var::<f64>(~"d_lambda_i");
-  let     id1        = k.named_var::<u32>(~"id1");
-  let     id2        = k.named_var::<u32>(~"id2");
+  let id         = k.named_var::<u32>(~"id");
+  let d_lambda_i = k.named_var::<f64>(~"d_lambda_i");
+  let id1        = k.named_var::<u32>(~"id1");
+  let id2        = k.named_var::<u32>(~"id2");
+
+  id.assign(k.get_global_id(0));
 
   id1.assign(id1s[id]);
   id2.assign(id2s[id]);
@@ -84,7 +90,7 @@ fn lin_pgs_kernel()
 
   impulses[id].assign((lambda_i_0 + d_lambda_i).clamp(&lobounds[id], &hibounds[id]));
 
-  d_lambda_i = impulses[id] - lambda_i_0;
+  d_lambda_i.assign(impulses[id] - lambda_i_0);
 
   do k.if_(id1.cl_ge(&Zero::zero()))
   { MJLambdas[id1].assign(MJLambdas[id1] - normals[id].scalar_mul(&(inv_masses[id1] * d_lambda_i))); }

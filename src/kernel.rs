@@ -3,12 +3,14 @@ use expr;
 use branching;
 use indent::Indent;
 use cl_type::CLType;
+use pragma::{Enable, Disable, Extension, Pragma};
 
 pub struct Kernel
 {
   priv name:          ~str,
   priv last_param_id: uint,
   priv last_var_id:   uint,
+  priv pragmas:       ~[Pragma],
   priv params:        ~[@Expr],
   priv exprs:         ~[@Expr]
 }
@@ -21,6 +23,7 @@ impl Kernel
       name:          name,
       last_param_id: 0,
       last_var_id:   0,
+      pragmas:       ~[],
       params:        ~[],
       exprs:         ~[]
 
@@ -31,6 +34,21 @@ impl Kernel
   {
     self.exprs.push(expr as @Expr);
   }
+
+  pub fn enable_extension(&mut self, ext: Extension)
+  {
+    // FIXME: check that the same extension is not both enabled and disabled?
+    self.pragmas.push(Enable(ext));
+  }
+
+  pub fn disable_extension(&mut self, ext: Extension)
+  {
+    // FIXME: check that the same extension is not both enabled and disabled?
+    self.pragmas.push(Disable(ext));
+  }
+
+  pub fn get_global_id(@mut self, dim: u32) -> @TypedExpr<u32>
+  { @expr::RValue(expr::RStrExpr("get_global_id(" + dim.to_str() + ")")) }
 
   pub fn param<T: 'static + CLType>(@mut self, location: Location) -> @TypedExpr<T>
   {
@@ -80,8 +98,17 @@ impl ToStr for Kernel
   {
     let mut indent = Indent::new();
 
+    let mut res = ~"";
+    
+    // pragmas
+    for self.pragmas.iter().advance |p|
+    { res = res + p.to_str() + "\n" }
+
+    if !self.pragmas.is_empty()
+    { res = res + "\n" }
+    
     // signature
-    let mut res = ~"__kernel void " + self.name.clone() + "(\n";
+    res = res + "__kernel void " + self.name.clone() + "(\n";
 
     indent.offset = 4;
 

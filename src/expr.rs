@@ -250,7 +250,7 @@ impl<T: 'static + CLType> TypedExpr<T>
 
         res
       },
-      RValue(_)             => fail!("Cannot assign an rvalue.")
+      RValue(_) => fail!("Cannot assign an rvalue.")
     }
   }
 }
