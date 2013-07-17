@@ -32,14 +32,14 @@ impl Expr for End
 // XXX: this is a simplified for loop. Replace that by a real for loop.
 pub struct Iterate
 {
-  begin: @TypedExpr<u32>,
-  end:   @TypedExpr<u32>,
-  i:     @TypedExpr<u32>
+  begin: @TypedExpr<i32>,
+  end:   @TypedExpr<i32>,
+  i:     @TypedExpr<i32>
 }
 
 impl Iterate
 {
-  pub fn new(begin: @TypedExpr<u32>, end: @TypedExpr<u32>, i: @TypedExpr<u32>) -> Iterate
+  pub fn new(begin: @TypedExpr<i32>, end: @TypedExpr<i32>, i: @TypedExpr<i32>) -> Iterate
   {
     Iterate {
       begin: begin,
@@ -54,7 +54,7 @@ impl Expr for Iterate
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
   {
     let res = indent.to_str() + "\n" +
-              indent.to_str() + "for (" + CLType::to_cl_type_str::<u32>() + " " + self.i.to_cl_str(indent) + " = " + self.begin.to_cl_str(indent) +
+              indent.to_str() + "for (" + CLType::to_cl_type_str::<i32>() + " " + self.i.to_cl_str(indent) + " = " + self.begin.to_cl_str(indent) +
                                 "; " + self.i.to_cl_str(indent) + " < " + self.end.to_cl_str(indent) +
                                 "; ++" + self.i.to_cl_str(indent) + ")\n" +
               indent.to_str() + "{";

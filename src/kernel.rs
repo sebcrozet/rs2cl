@@ -47,7 +47,7 @@ impl Kernel
     self.pragmas.push(Disable(ext));
   }
 
-  pub fn get_global_id(@mut self, dim: u32) -> @TypedExpr<u32>
+  pub fn get_global_id(@mut self, dim: u32) -> @TypedExpr<i32>
   { @expr::RValue(expr::RStrExpr("get_global_id(" + dim.to_str() + ")")) }
 
   pub fn param<T: 'static + CLType>(@mut self, location: Location) -> @TypedExpr<T>
@@ -100,9 +100,9 @@ impl Kernel
     self.exprs.push(@branching::End as @Expr);
   }
 
-  pub fn iterate(@mut self, begin: @TypedExpr<u32>, end: @TypedExpr<u32>, f: &fn(@TypedExpr<u32>))
+  pub fn iterate(@mut self, begin: @TypedExpr<i32>, end: @TypedExpr<i32>, f: &fn(@TypedExpr<i32>))
   {
-    let i = self.var_nodecl::<u32>();
+    let i = self.var_nodecl::<i32>();
 
     self.exprs.push(@branching::Iterate::new(begin, end, i) as @Expr);
     f(i);

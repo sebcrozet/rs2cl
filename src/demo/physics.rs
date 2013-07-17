@@ -29,7 +29,7 @@ use pragma;
 //   let dt         = k.named_param::<f64>(~"dt", expr::Global);
 // 
 //   // FIXME: let id         = k.global_id();
-//   let id = expr::literal(0u32);
+//   let id = expr::literal(0i32);
 // 
 //   velocities[id].assign(velocities[id] + fext.scalar_mul(&dt));
 //   positions[id].assign(positions[id] + velocities[id].scalar_mul(&dt));
@@ -47,9 +47,9 @@ fn lin_pgs_kernel()
   /*
    * Params
    */
-  let num        = k.named_param::<u32>(~"num", expr::Const);
-  let id1s       = k.named_param::<~[u32]>(~"id1s", expr::Global);
-  let id2s       = k.named_param::<~[u32]>(~"id2s", expr::Global);
+  let num        = k.named_param::<i32>(~"num", expr::Const);
+  let id1s       = k.named_param::<~[i32]>(~"id1s", expr::Global);
+  let id2s       = k.named_param::<~[i32]>(~"id2s", expr::Global);
   let normals    = k.named_param::<~[CLVec3f64]>(~"normals", expr::Global);
   let inv_masses = k.named_param::<~[f64]>(~"inv_masses", expr::Global);
   let impulses   = k.named_param::<~[f64]>(~"impulses", expr::Global);
@@ -62,8 +62,8 @@ fn lin_pgs_kernel()
   do k.iterate(expr::literal(0), num) |i|
   {
     let d_lambda_i = k.named_var::<f64>(~"d_lambda_i");
-    let id1        = k.named_var::<u32>(~"id1");
-    let id2        = k.named_var::<u32>(~"id2");
+    let id1        = k.named_var::<i32>(~"id1");
+    let id2        = k.named_var::<i32>(~"id2");
 
     id1.assign(id1s[i]);
     id2.assign(id2s[i]);

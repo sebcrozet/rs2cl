@@ -55,13 +55,13 @@ pub enum LValue<T>
 {
   // LValue
   LVariable(~str, Location),
-  LIndexed(@Expr, @TypedExpr<u32>),
+  LIndexed(@Expr, @TypedExpr<i32>),
   LStrExpr(~str), // NOTE: unsafe
 }
 
 pub enum RValue<T>
 {
-  RIndexed(@Expr, @TypedExpr<u32>),
+  RIndexed(@Expr, @TypedExpr<i32>),
   RLiteral(T),
   RStrExpr(~str), // NOTE: unsafe
   ParenthesedOp(@Expr)
@@ -227,9 +227,9 @@ impl<N1: CLType, N2: CLType, N3: CLType, N4> Expr for TernaryOperation<N1, N2, N
   }
 }
 
-impl<T: 'static + CLType> Index<@TypedExpr<u32>, @TypedExpr<T>> for @TypedExpr<~[T]>
+impl<T: 'static + CLType> Index<@TypedExpr<i32>, @TypedExpr<T>> for @TypedExpr<~[T]>
 {
-  fn index(&self, idx: &@TypedExpr<u32>) -> @TypedExpr<T>
+  fn index(&self, idx: &@TypedExpr<i32>) -> @TypedExpr<T>
   {
     match **self
     {
