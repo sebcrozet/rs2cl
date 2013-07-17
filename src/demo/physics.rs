@@ -14,27 +14,29 @@ use cl_logic::ClOrd;
 use expr;
 
 // test
-#[test]
-fn integration_kernel() -> ()
-{
-  let k          = @mut Kernel::new();
-
-  let velocities = k.param::<~[Vec3<f64>]>(expr::Global);
-  let positions  = k.param::<~[Vec3<f64>]>(expr::Global);
-  let fext       = k.param::<Vec3<f64>>(expr::Global);
-  let dt         = k.param::<f64>(expr::Global);
-
-  // FIXME: let id         = k.global_id();
-  let id = expr::literal(0u);
-
-  velocities[id].assign(velocities[id] + fext.scalar_mul(&dt));
-  positions[id].assign(positions[id] + velocities[id].scalar_mul(&dt));
-}
+// #[test]
+// fn integration_kernel() -> ()
+// {
+//   let k          = @mut Kernel::new(~"integrate");
+// 
+//   let velocities = k.named_param::<~[Vec3<f64>]>(~"velocities", expr::Global);
+//   let positions  = k.named_param::<~[Vec3<f64>]>(~"positions", expr::Global);
+//   let fext       = k.named_param::<Vec3<f64>>(~"fext", expr::Global);
+//   let dt         = k.named_param::<f64>(~"dt", expr::Global);
+// 
+//   // FIXME: let id         = k.global_id();
+//   let id = expr::literal(0u);
+// 
+//   velocities[id].assign(velocities[id] + fext.scalar_mul(&dt));
+//   positions[id].assign(positions[id] + velocities[id].scalar_mul(&dt));
+// 
+//   println(k.to_str());
+// }
 
 #[test]
 fn lin_pgs_kernel()
 {
-  let k = @mut Kernel::new();
+  let k = @mut Kernel::new(~"lin_pgs_solve");
 
   // FIXME: let id         = k.global_id();
   let id = expr::literal(0u);
@@ -42,23 +44,23 @@ fn lin_pgs_kernel()
   /*
    * Params
    */
-  let id1s       = k.param::<~[uint]>(expr::Global);
-  let id2s       = k.param::<~[uint]>(expr::Global);
-  let normals    = k.param::<~[Vec3<f64>]>(expr::Global);
-  let inv_masses = k.param::<~[f64]>(expr::Global);
-  let impulses   = k.param::<~[f64]>(expr::Global);
-  let lobounds   = k.param::<~[f64]>(expr::Global);
-  let hibounds   = k.param::<~[f64]>(expr::Global);
-  let objectives = k.param::<~[f64]>(expr::Global);
-  let pmasses    = k.param::<~[f64]>(expr::Global);
-  let MJLambdas  = k.param::<~[Vec3<f64>]>(expr::Global);
+  let id1s       = k.named_param::<~[uint]>(~"id1s", expr::Global);
+  let id2s       = k.named_param::<~[uint]>(~"id2s", expr::Global);
+  let normals    = k.named_param::<~[Vec3<f64>]>(~"normals", expr::Global);
+  let inv_masses = k.named_param::<~[f64]>(~"inv_masses", expr::Global);
+  let impulses   = k.named_param::<~[f64]>(~"impulses", expr::Global);
+  let lobounds   = k.named_param::<~[f64]>(~"lobounds", expr::Global);
+  let hibounds   = k.named_param::<~[f64]>(~"hibounds", expr::Global);
+  let objectives = k.named_param::<~[f64]>(~"objectives", expr::Global);
+  let pmasses    = k.named_param::<~[f64]>(~"pmasses", expr::Global);
+  let MJLambdas  = k.named_param::<~[Vec3<f64>]>(~"MJLambdas", expr::Global);
 
   /*
    * Locals
    */
-  let mut d_lambda_i = k.var::<f64>();
-  let     id1        = k.var::<uint>();
-  let     id2        = k.var::<uint>();
+  let mut d_lambda_i = k.named_var::<f64>(~"d_lambda_i");
+  let     id1        = k.named_var::<uint>(~"id1");
+  let     id2        = k.named_var::<uint>(~"id2");
 
   id1.assign(id1s[id]);
   id2.assign(id2s[id]);
@@ -89,4 +91,6 @@ fn lin_pgs_kernel()
 
   do k.if_(id2.cl_ge(&Zero::zero()))
   { MJLambdas[id2].assign(MJLambdas[id2] + normals[id].scalar_mul(&(inv_masses[id2] * d_lambda_i))); }
+
+  println(k.to_str());
 }

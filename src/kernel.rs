@@ -1,8 +1,11 @@
 use expr::{Location, Expr, TypedExpr};
 use expr;
+use branching;
+use indent::Indent;
 
 pub struct Kernel
 {
+  priv name:          ~str,
   priv last_param_id: uint,
   priv last_var_id:   uint,
   priv params:        ~[@Expr],
@@ -11,9 +14,10 @@ pub struct Kernel
 
 impl Kernel
 {
-  pub fn new() -> Kernel
+  pub fn new(name: ~str) -> Kernel
   {
     Kernel {
+      name:          name,
       last_param_id: 0,
       last_var_id:   0,
       params:        ~[],
@@ -47,26 +51,25 @@ impl Kernel
 
   pub fn named_param<T: 'static>(@mut self, name: ~str, location: Location) -> @TypedExpr<T>
   {
-    self.params.push(@expr::Declaration::<T>(name.clone(), location) as @Expr);
+    self.params.push(@expr::Param::<T>(name.clone(), location) as @Expr);
 
     // FIXME: return an rvalue if the location is const?
-    @expr::LValue(expr::LVariable(name, location, self))
+    @expr::LValue(expr::LVariable(name, location), self)
   }
 
   pub fn named_var<T: 'static>(@mut self, name: ~str) -> @TypedExpr<T>
   {
-    self.exprs.push(@expr::Declaration::<T>(name.clone(), expr::Nowhere) as @Expr);
+    self.exprs.push(@expr::Declare::<T>(name.clone(), expr::Nowhere) as @Expr);
 
-    @expr::LValue(expr::LVariable(name, expr::Nowhere, self))
+    @expr::LValue(expr::LVariable(name, expr::Nowhere), self)
   }
 
   // FIXME: implement else_ and elif_
-  pub fn if_(@mut self, _: @TypedExpr<bool>, f: &fn())
+  pub fn if_(@mut self, cond: @TypedExpr<bool>, f: &fn())
   {
-    // XXX: push constructs to start an if
+    self.exprs.push(@branching::If(cond) as @Expr);
     f();
-    // XXX: push constructs to end an if
-    fail!("Not yet implemented.")
+    self.exprs.push(@branching::EndIf as @Expr);
   }
 }
 
@@ -74,7 +77,37 @@ impl ToStr for Kernel
 {
   fn to_str(&self) -> ~str
   {
-    // XXX: transform this to a valid OpenCL Kernel!
-    fail!("Not yet implemented.");
+    let mut indent = Indent::new();
+
+    // signature
+    let mut res = ~"__kernel void " + self.name.clone() + "(\n";
+
+    indent.offset = 4;
+
+    let mut iter = self.params.iter();
+
+    match iter.next()
+    {
+      Some(exp) => {
+        res = res + exp.to_cl_str(&mut indent);
+        for iter.advance |p|
+        { res = res + ",\n" + p.to_cl_str(&mut indent) }
+      },
+      None => { },
+    }
+
+    res = res + ")\n";
+
+    // body
+    res = res + "{\n";
+
+    indent.offset = 2;
+
+    for self.exprs.iter().advance |e|
+    { res = res + e.to_cl_str(&mut indent) + "\n" }
+
+    res = res + "}\n";
+
+    res
   }
 }

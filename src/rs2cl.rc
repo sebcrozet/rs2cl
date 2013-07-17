@@ -11,6 +11,8 @@ extern mod nalgebra;
 pub mod expr;
 pub mod kernel;
 pub mod cl_logic;
+pub mod branching;
+pub mod indent;
 
 mod demo
 {

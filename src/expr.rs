@@ -1,7 +1,8 @@
 use std::num::{Zero, One};
 use nalgebra::traits::scalar_op::ScalarMul; // FIXME: implement other traits
 use nalgebra::traits::dot::Dot;
-use kernel::Kernel;
+use kernel;
+use indent::Indent;
 use cl_logic::{ClEq, ClOrd};
 
 pub enum Location
@@ -13,27 +14,30 @@ pub enum Location
 }
 
 pub trait Expr
-{ }
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str;
+}
 
 // XXX: make all the constructors private!
 pub enum UntypedExpr<T>
 {
-  Declaration(~str, Location),
+  Param(~str, Location),
+  Declare(~str, Location),
   Assign(LValue<T>, @TypedExpr<T>),
-  WildCardAssign(~TypedExpr<T>),
+  // FIXME: useful? WildCardAssign(~TypedExpr<T>),
   StrExpr(~str)
 }
 
 pub enum TypedExpr<T>
 {
   RValue(RValue<T>),
-  LValue(LValue<T>)
+  LValue(LValue<T>, @mut kernel::Kernel)
 }
 
 pub enum LValue<T>
 {
   // LValue
-  LVariable(~str, Location, @mut Kernel),
+  LVariable(~str, Location),
   LIndexed(@Expr, @TypedExpr<uint>),
   LStrExpr(~str), // NOTE: unsafe
 }
@@ -112,45 +116,126 @@ enum TernOp
 }
 
 impl<T> Expr for UntypedExpr<T>
-{ }
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str
+  {
+    indent.to_str() +
+    match *self
+    {
+      Param(ref name,   ref location) => ~"??location?? ??type?? " + *name,
+      Declare(ref name, ref location) => ~"??location?? ??type?? " + *name + ";",
+      Assign(ref left,  ref right)    => left.to_cl_str(indent) + " = " + right.to_cl_str(indent) + ";",
+      StrExpr(ref s)                  => s.clone()
+    }
+  }
+}
 
 impl<T> Expr for TypedExpr<T>
-{ }
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str
+  {
+    match *self
+    {
+      RValue(ref rval)    => rval.to_cl_str(indent),
+      LValue(ref lval, _) => lval.to_cl_str(indent)
+    }
+  }
+}
+
+impl<T> Expr for RValue<T>
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str
+  {
+    match *self
+    {
+      RIndexed(ref val, ref idx) => val.to_cl_str(indent) + "[" + idx.to_cl_str(indent) + "]",
+      RLiteral(ref val)          => ~"??literal??",
+      RStrExpr(ref expr)         => expr.clone(),
+      ParenthesedOp(ref expr)    => "(" + expr.to_cl_str(indent) + ")"
+    }
+  }
+}
+
+impl<T> Expr for LValue<T>
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str
+  {
+    match *self
+    {
+      LIndexed(ref val, ref idx) => val.to_cl_str(indent) + "[" + idx.to_cl_str(indent) + "]",
+      LVariable(ref name, _)     => name.clone(),
+      LStrExpr(ref expr)         => expr.clone()
+    }
+  }
+}
 
 impl<N1, N2, N3> Expr for BinaryOperation<N1, N2, N3>
-{ }
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str
+  {
+    let v1 = self.val1.to_cl_str(indent);
+    let v2 = self.val2.to_cl_str(indent);
+
+    match self.op
+    {
+      Plus     => v1 + " + "  + v2,
+      Minus    => v1 + " - "  + v2,
+      Multiply => v1 + " * "  + v2,
+      Divide   => v1 + " / "  + v2,
+      Leq      => v1 + " <= " + v2,
+      Geq      => v1 + " >= " + v2,
+      Lstrict  => v1 + " < "  + v2,
+      Gstrict  => v1 + " > "  + v2,
+      Estrict  => v1 + " == " + v2,
+      NEstrict => v1 + " != " + v2,
+      Dot      => "dot(" + v1 + ", " + v2 + ")",
+      Min      => "min(" + v1 + ", " + v2 + ")",
+      Max      => "max(" + v1 + ", " + v2 + ")"
+    }
+  }
+}
 
 impl<N1, N2, N3, N4> Expr for TernaryOperation<N1, N2, N3, N4>
-{ }
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str
+  {
+    let v1 = self.val1.to_cl_str(indent);
+    let v2 = self.val2.to_cl_str(indent);
+    let v3 = self.val3.to_cl_str(indent);
+
+    match self.op
+    {
+      Clamp => "clamp(" + v1 + ", " + v2 + ", " + v3 + ")"
+    }
+  }
+}
 
 impl<T: 'static> Index<@TypedExpr<uint>, @TypedExpr<T>> for @TypedExpr<~[T]>
 {
   fn index(&self, idx: &@TypedExpr<uint>) -> @TypedExpr<T>
   {
-    if self.is_lvalue()
-    { @LValue(LIndexed(*self as @Expr, *idx)) }
-    else
-    { @RValue(RIndexed(*self as @Expr, *idx)) }
+    match **self
+    {
+      LValue(_, parent) => @LValue(LIndexed(*self as @Expr, *idx), parent),
+      RValue(_)         => @RValue(RIndexed(*self as @Expr, *idx))
+    }
   }
 }
 
-impl<T> TypedExpr<T>
+impl<T: 'static> TypedExpr<T>
 {
   pub fn assign(@self, val: @TypedExpr<T>) -> @UntypedExpr<T>
   {
     match *self
     {
-      LValue(ref l) => @Assign(copy* l, val),
-      RValue(_)     => fail!("Cannot assign an rvalue.")
-    }
-  }
+      LValue(ref l, parent) => {
+        let res = @Assign(copy* l, val);
 
-  pub fn is_lvalue(&self) -> bool
-  {
-    match *self
-    {
-      RValue(_) => false,
-      LValue(_) => true,
+        parent.push_expr(res);
+
+        res
+      },
+      RValue(_)             => fail!("Cannot assign an rvalue.")
     }
   }
 }
@@ -158,11 +243,14 @@ impl<T> TypedExpr<T>
 pub unsafe fn untyped_str(string: ~str) -> @UntypedExpr<()>
 { @StrExpr(string) }
 
-pub unsafe fn lval_str<T>(string: ~str) -> @TypedExpr<T>
-{ @LValue(LStrExpr(string)) }
-
-pub unsafe fn rval_str<T>(string: ~str) -> @TypedExpr<T>
-{ @RValue(RStrExpr(string)) }
+impl kernel::Kernel
+{
+  pub unsafe fn lval_str<T>(@mut self, string: ~str) -> @TypedExpr<T>
+  { @LValue(LStrExpr(string), self) }
+  
+  pub unsafe fn rval_str<T>(@mut self, string: ~str) -> @TypedExpr<T>
+  { @RValue(RStrExpr(string)) }
+}
 
 pub fn literal<T>(val: T) -> @TypedExpr<T>
 { @RValue(RLiteral(val)) }
