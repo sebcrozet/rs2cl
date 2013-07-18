@@ -1,6 +1,7 @@
 use std::num::{Zero, One};
 use nalgebra::traits::scalar_op::ScalarMul; // FIXME: implement other traits
 use nalgebra::traits::dot::Dot;
+use nalgebra::traits::norm::Norm;
 use kernel;
 use indent::Indent;
 use cl_logic::{ClEq, ClOrd};
@@ -67,6 +68,23 @@ pub enum RValue<T>
   ParenthesedOp(@Expr)
 }
 
+struct UnaryOperation<N1, N2>
+{
+  val: @TypedExpr<N1>,
+  op:  UnOp
+}
+
+impl<N1, N2> UnaryOperation<N1, N2>
+{
+  pub fn new(val: @TypedExpr<N1>, op: UnOp) -> UnaryOperation<N1, N2>
+  {
+    UnaryOperation {
+      val: val,
+      op:  op
+    }
+  }
+}
+
 struct BinaryOperation<N1, N2, N3>
 {
   val1: @TypedExpr<N1>,
@@ -108,6 +126,12 @@ impl<N1, N2, N3, N4> TernaryOperation<N1, N2, N3, N4>
       op:   op
     }
   }
+}
+
+enum UnOp
+{
+  Normalize,
+  Length
 }
 
 enum BinOp
@@ -186,6 +210,20 @@ impl<T> Expr for LValue<T>
   }
 }
 
+impl<N1: CLType, N2> Expr for UnaryOperation<N1, N2>
+{
+  fn to_cl_str(&self, indent: &mut Indent) -> ~str
+  {
+    let v1 = self.val.to_cl_str(indent);
+
+    match self.op
+    {
+      Length    => "length("    + v1 + ")",
+      Normalize => "normalize(" + v1 + ")",
+    }
+  }
+}
+
 impl<N1: CLType, N2: CLType, N3> Expr for BinaryOperation<N1, N2, N3>
 {
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
@@ -257,11 +295,17 @@ impl<T: 'static + CLType> TypedExpr<T>
   }
 }
 
-pub unsafe fn untyped_str(string: ~str) -> @UntypedExpr<()>
-{ @StrExpr(string) }
-
 impl kernel::Kernel
 {
+  pub unsafe fn untyped_str(@mut self, string: ~str) -> @UntypedExpr<u32>
+  {
+    let res = @StrExpr(string);
+
+    self.push_expr(res);
+
+    res
+  }
+
   pub unsafe fn lval_str<T>(@mut self, string: ~str) -> @TypedExpr<T>
   { @LValue(LStrExpr(string), self) }
   
@@ -370,4 +414,27 @@ impl<N: 'static + Orderable + CLType> Orderable for @TypedExpr<N>
 
   fn clamp(&self, mn: &@TypedExpr<N>, mx: &@TypedExpr<N>) -> @TypedExpr<N>
   { @RValue(ParenthesedOp(@TernaryOperation::new::<N, N, N, N>(*self, *mn, *mx, Clamp) as @Expr)) }
+}
+
+impl<V: 'static + Norm<N> + CLType, N: 'static + CLType> Norm<@TypedExpr<N>> for @TypedExpr<V>
+{
+  fn norm(&self) -> @TypedExpr<N>
+  {
+    @RValue(ParenthesedOp(@UnaryOperation::new::<V, N>(*self, Length) as @Expr))
+  }
+
+  fn sqnorm(&self) -> @TypedExpr<N>
+  {
+    fail!("Not yet implemented.");
+  }
+
+  fn normalized(&self) -> @TypedExpr<V>
+  {
+    @RValue(ParenthesedOp(@UnaryOperation::new::<V, V>(*self, Normalize) as @Expr))
+  }
+
+  fn normalize(&mut self) -> @TypedExpr<N>
+  {
+    fail!("Not yet implemented.");
+  }
 }

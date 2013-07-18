@@ -5,6 +5,8 @@ use nalgebra::traits::scalar_op::ScalarMul;
 #[test]
 use nalgebra::traits::dot::Dot;
 #[test]
+use nalgebra::traits::norm::Norm;
+#[test]
 use kernel::Kernel;
 #[test]
 use cl_logic::ClOrd;
