@@ -46,9 +46,9 @@ impl CLType for CLVec3f64
   fn to_cl_literal_str(&self) -> ~str
   {
     ~"double4(" +
-      self.val.at[0].to_str() + ", " +
-      self.val.at[1].to_str() + ", " +
-      self.val.at[2].to_str() + ", " +
+      self.val.x.to_str() + ", " +
+      self.val.y.to_str() + ", " +
+      self.val.z.to_str() + ", " +
       "0.0" +
     ")"
   }

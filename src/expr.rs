@@ -60,6 +60,19 @@ pub enum LValue<T>
   LStrExpr(~str), // NOTE: unsafe
 }
 
+impl<T> Clone for LValue<T>
+{
+  fn clone(&self) -> LValue<T>
+  {
+    match *self
+    {
+      LVariable(ref a, b) => LVariable(a.clone(), b),
+      LIndexed(a, b)      => LIndexed(a, b),
+      LStrExpr(ref a)     => LStrExpr(a.clone()), // NOTE: unsafe
+    }
+  }
+}
+
 pub enum RValue<T>
 {
   RIndexed(@Expr, @TypedExpr<i32>),
@@ -284,7 +297,7 @@ impl<T: 'static + CLType> TypedExpr<T>
     match *self
     {
       LValue(ref l, parent) => {
-        let res = @Assign(copy* l, val);
+        let res = @Assign(l.clone(), val);
 
         parent.push_expr(res);
 
