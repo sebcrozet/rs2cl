@@ -319,14 +319,14 @@ impl kernel::Kernel
     res
   }
 
-  pub unsafe fn lval_str<T>(@mut self, string: ~str) -> @TypedExpr<T>
+  pub unsafe fn lval_str<T: 'static>(@mut self, string: ~str) -> @TypedExpr<T>
   { @LValue(LStrExpr(string), self) }
   
-  pub unsafe fn rval_str<T>(@mut self, string: ~str) -> @TypedExpr<T>
+  pub unsafe fn rval_str<T: 'static>(@mut self, string: ~str) -> @TypedExpr<T>
   { @RValue(RStrExpr(string)) }
 }
 
-pub fn literal<T>(val: T) -> @TypedExpr<T>
+pub fn literal<T: 'static>(val: T) -> @TypedExpr<T>
 { @RValue(RLiteral(val)) }
 
 /*
@@ -341,7 +341,7 @@ impl<N: Zero> Zero for TypedExpr<N>
   { fail!("is_zero cannot be evaluated on an openCL cl-expression.") }
 }
 
-impl<N: One> One for @TypedExpr<N>
+impl<N: 'static + One> One for @TypedExpr<N>
 {
   fn one() -> @TypedExpr<N>
   { @RValue(RLiteral(One::one())) }
