@@ -417,6 +417,15 @@ impl<V: 'static + Dot<N> + CLType, N: 'static + CLType> Dot<@TypedExpr<N>> for @
   { @RValue(ParenthesedOp(@BinaryOperation::new::<V, V, N>(*self, *other, Dot) as @Expr)) }
 }
 
+impl<N: 'static + Ord + CLType> Ord for TypedExpr<N>
+{
+  fn lt(&self, _: &TypedExpr<N>) -> bool
+  {
+    fail!("Usual comparison operators cannot be used with gpu expressions." +
+          " See the `ClOrd` trait for comparison functions.")
+  }
+}
+
 impl<N: 'static + Orderable + CLType> Orderable for @TypedExpr<N>
 {
   fn min(&self, other: &@TypedExpr<N>) -> @TypedExpr<N>
