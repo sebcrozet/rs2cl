@@ -119,7 +119,7 @@ impl ToStr for Kernel
     let mut res = ~"";
     
     // pragmas
-    foreach p in self.pragmas.iter()
+    for p in self.pragmas.iter()
     { res = res + p.to_str() + "\n" }
 
     if !self.pragmas.is_empty()
@@ -136,7 +136,7 @@ impl ToStr for Kernel
     {
       Some(exp) => {
         res = res + exp.to_cl_str(&mut indent);
-        foreach p in iter
+        for p in iter
         { res = res + ",\n" + p.to_cl_str(&mut indent) }
       },
       None => { },
@@ -149,7 +149,7 @@ impl ToStr for Kernel
 
     indent.offset = 2;
 
-    foreach e in self.exprs.iter()
+    for e in self.exprs.iter()
     { res = res + e.to_cl_str(&mut indent) + "\n" }
 
     res = res + "}\n";
