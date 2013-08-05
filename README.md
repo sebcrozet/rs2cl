@@ -4,7 +4,7 @@
 converted (at runtime) to a string containing valid OpenCL code. Of course, you kernel written in
 rust is type checked at compile time.
 
-Note that **rs2cl** is pure Rust code. OpenCL code generation is done with the `to_str()` method.
+Note that **rs2cl** is pure Rust code. OpenCL code generation is done with the `to_str` method.
 You do not need any kind preprocessor.
 
 If you happen to make it generate invalid OpenCL code, this is a bug.
@@ -48,4 +48,4 @@ We intend to be able to generate every examples from the OpenCL Green book on th
 
 
 ## rs2cl in use
-    - https://github.com/natal/roft (see the file src/kernels.rs)
+  * https://github.com/natal/roft (see the file src/kernels.rs)
