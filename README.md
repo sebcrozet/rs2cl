@@ -14,6 +14,12 @@ If you happen to make it generate invalid OpenCL code, this is a bug.
 Here is what the addition of two vectors look like:
 
 ```rust
+extern mod rs2cl;
+
+use rs2cl::pragma;
+use rs2cl::expr;
+use rs2cl::kernel::Kernel;
+
 fn addition_kernel()
 {
     let k = @mut Kernel::new(~"add");
