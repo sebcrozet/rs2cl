@@ -54,7 +54,7 @@ impl Expr for Iterate
   fn to_cl_str(&self, indent: &mut Indent) -> ~str
   {
     let res = indent.to_str() + "\n" +
-              indent.to_str() + "for (" + CLType::to_cl_type_str::<i32>() + " " +
+              indent.to_str() + "for (" + CLType::to_cl_type_str(None::<i32>) + " " +
                                 self.i.to_cl_str(indent) + " = " + self.begin.to_cl_str(indent) +
                                 "; " + self.i.to_cl_str(indent) + " < " + self.end.to_cl_str(indent) +
                                 "; ++" + self.i.to_cl_str(indent) + ")\n" +

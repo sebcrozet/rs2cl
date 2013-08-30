@@ -3,9 +3,8 @@ use std::libc;
 use std::sys;
 use std::ptr;
 use std::num::Zero;
-use nalgebra::traits::scalar_op::ScalarMul;
-use nalgebra::traits::norm::Norm;
-use nalgebra::traits::dot::Dot;
+use nalgebra::traits::vector::{Vec, AlgebraicVec};
+use nalgebra::traits::dim::Dim;
 use nalgebra::vec::Vec3;
 use cl_type::CLType;
 use OpenCL;
@@ -40,7 +39,7 @@ impl OpenCL::hl::KernelArg for CLVec3f64
 
 impl CLType for CLVec3f64
 {
-  fn to_cl_type_str() -> ~str
+  fn to_cl_type_str(_: Option<CLVec3f64>) -> ~str
   { ~"double4" }
 
   fn to_cl_literal_str(&self) -> ~str
@@ -64,7 +63,25 @@ impl Zero for CLVec3f64
   { self.val.is_zero() }
 }
 
-impl Norm<f64> for CLVec3f64
+impl Dim for CLVec3f64 {
+    fn dim(_: Option<CLVec3f64>) -> uint {
+        3
+    }
+}
+
+impl Neg<CLVec3f64> for CLVec3f64 {
+    fn neg(&self) -> CLVec3f64 {
+        CLVec3f64::new(-self.val)
+    }
+}
+
+impl Div<f64, CLVec3f64> for CLVec3f64 {
+    fn div(&self, d: &f64) -> CLVec3f64 {
+        CLVec3f64::new(self.val / *d)
+    }
+}
+
+impl AlgebraicVec<f64> for CLVec3f64
 {
   fn norm(&self) -> f64
   { self.val.norm() }
@@ -79,7 +96,7 @@ impl Norm<f64> for CLVec3f64
   { self.val.normalize() }
 }
 
-impl Dot<f64> for CLVec3f64
+impl Vec<f64> for CLVec3f64
 {
   fn dot(&self, other: &CLVec3f64) -> f64
   { self.val.dot(&other.val) }
@@ -97,11 +114,8 @@ impl Sub<CLVec3f64, CLVec3f64> for CLVec3f64
   { CLVec3f64::new(self.val - other.val) }
 }
 
-impl ScalarMul<f64> for CLVec3f64
+impl Mul<f64, CLVec3f64> for CLVec3f64
 {
-  fn scalar_mul(&self, val: &f64) -> CLVec3f64
-  { CLVec3f64::new(self.val.scalar_mul(val)) }
-
-  fn scalar_mul_inplace(&mut self, val: &f64)
-  { self.val.scalar_mul_inplace(val) }
+  fn mul(&self, val: &f64) -> CLVec3f64
+  { CLVec3f64::new(self.val * *val) }
 }
