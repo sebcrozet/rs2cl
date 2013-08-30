@@ -22,7 +22,7 @@ use rs2cl::kernel::Kernel;
 
 fn addition_kernel()
 {
-    let k = @mut Kernel::new(~"add");
+    let k = Kernel::new(~"add");
 
     k.enable_extension(pragma::cl_khr_fp64);
 
@@ -48,4 +48,4 @@ We intend to be able to generate every examples from the OpenCL Green book on th
 
 
 ## rs2cl in use
-  * https://github.com/natal/roft (see the file src/kernels.rs)
+  * a [soft body simulator](https://github.com/natal/roft) (see the file `src/kernels.rs`).

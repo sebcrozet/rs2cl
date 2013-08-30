@@ -16,8 +16,3 @@ pub mod branching;
 pub mod indent;
 pub mod nalgebra2cl;
 pub mod pragma;
-
-mod demo
-{
-  mod physics;
-}
