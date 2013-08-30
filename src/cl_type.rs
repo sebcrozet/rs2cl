@@ -1,29 +1,30 @@
-pub trait CLType
-{
-  fn to_cl_type_str(dummy_self: Option<Self>) -> ~str;
-  fn to_cl_literal_str(&self) -> ~str;
+pub trait CLType {
+    fn to_cl_type_str(dummy_self: Option<Self>) -> ~str;
+    fn to_cl_literal_str(&self) -> ~str;
 }
 
-impl<T: CLType> CLType for ~[T]
-{
-  fn to_cl_type_str(_: Option<~[T]>) -> ~str
-  { CLType::to_cl_type_str(None::<T>) + "*" }
+impl<T: CLType> CLType for ~[T] {
+    fn to_cl_type_str(_: Option<~[T]>) -> ~str {
+        CLType::to_cl_type_str(None::<T>) + "*"
+    }
 
-  fn to_cl_literal_str(&self) -> ~str
-  { ~"0" } // FIXME: valid?
+    fn to_cl_literal_str(&self) -> ~str {
+        ~"0"
+    } // FIXME: valid?
 }
 
 macro_rules! primitive_impl(
-  ($t: ty, $expr: expr) => (
-    impl CLType for $t
-    {
-      fn to_cl_type_str(_: Option<$t>) -> ~str
-      { ~$expr }
+    ($t: ty, $expr: expr) => (
+        impl CLType for $t {
+            fn to_cl_type_str(_: Option<$t>) -> ~str {
+                ~$expr
+            }
 
-      fn to_cl_literal_str(&self) -> ~str
-      { self.to_str() }
-    }
-  )
+            fn to_cl_literal_str(&self) -> ~str {
+                self.to_str()
+            }
+        }
+    )
 )
 
 primitive_impl!(i32,  "int")

@@ -5,155 +5,144 @@ use indent::Indent;
 use cl_type::CLType;
 use pragma::{Enable, Disable, Extension, Pragma};
 
-pub struct Kernel
-{
-  priv name:          ~str,
-  priv last_param_id: uint,
-  priv last_var_id:   uint,
-  priv pragmas:       ~[Pragma],
-  priv params:        ~[@Expr],
-  priv exprs:         ~[@Expr]
+pub struct Kernel {
+    priv name:          ~str,
+    priv last_param_id: uint,
+    priv last_var_id:   uint,
+    priv pragmas:       ~[Pragma],
+    priv params:        ~[@Expr],
+    priv exprs:         ~[@Expr]
 }
 
-impl Kernel
-{
-  pub fn new(name: ~str) -> Kernel
-  {
-    Kernel {
-      name:          name,
-      last_param_id: 0,
-      last_var_id:   0,
-      pragmas:       ~[],
-      params:        ~[],
-      exprs:         ~[]
+impl Kernel {
+    pub fn new(name: ~str) -> Kernel {
+        Kernel {
+            name:          name,
+            last_param_id: 0,
+            last_var_id:   0,
+            pragmas:       ~[],
+            params:        ~[],
+            exprs:         ~[]
 
+        }
     }
-  }
 
-  pub fn push_expr<T: 'static + Expr>(@mut self, expr: @T)
-  {
-    self.exprs.push(expr as @Expr);
-  }
+    pub fn push_expr<T: 'static + Expr>(@mut self, expr: @T) {
+        self.exprs.push(expr as @Expr);
+    }
 
-  pub fn enable_extension(&mut self, ext: Extension)
-  {
-    // FIXME: check that the same extension is not both enabled and disabled?
-    self.pragmas.push(Enable(ext));
-  }
+    pub fn enable_extension(&mut self, ext: Extension) {
+        // FIXME: check that the same extension is not both enabled and disabled?
+        self.pragmas.push(Enable(ext));
+    }
 
-  pub fn disable_extension(&mut self, ext: Extension)
-  {
-    // FIXME: check that the same extension is not both enabled and disabled?
-    self.pragmas.push(Disable(ext));
-  }
+    pub fn disable_extension(&mut self, ext: Extension) {
+        // FIXME: check that the same extension is not both enabled and disabled?
+        self.pragmas.push(Disable(ext));
+    }
 
-  pub fn get_global_id(@mut self, dim: u32) -> @TypedExpr<i32>
-  { @expr::RValue(expr::RStrExpr("get_global_id(" + dim.to_str() + ")")) }
+    pub fn get_global_id(@mut self, dim: u32) -> @TypedExpr<i32> {
+        @expr::RValue(expr::RStrExpr("get_global_id(" + dim.to_str() + ")"))
+    }
 
-  pub fn param<T: 'static + CLType>(@mut self, location: Location) -> @TypedExpr<T>
-  {
-    let res = self.named_param(~"rs2cl_p" + self.last_param_id.to_str(), location);
+    pub fn param<T: 'static + CLType>(@mut self, location: Location) -> @TypedExpr<T> {
+        let res = self.named_param(~"rs2cl_p" + self.last_param_id.to_str(), location);
 
-    self.last_param_id = self.last_param_id + 1;
+        self.last_param_id = self.last_param_id + 1;
 
-    res
-  }
+        res
+    }
 
-  pub fn var<T: 'static + CLType>(@mut self) -> @TypedExpr<T>
-  {
-    let res = self.named_var(~"rs2cl_v" + self.last_var_id.to_str());
+    pub fn var<T: 'static + CLType>(@mut self) -> @TypedExpr<T> {
+        let res = self.named_var(~"rs2cl_v" + self.last_var_id.to_str());
 
-    self.last_var_id = self.last_var_id + 1;
+        self.last_var_id = self.last_var_id + 1;
 
-    res
-  }
+        res
+    }
 
-  pub fn named_param<T: 'static + CLType>(@mut self, name: ~str, location: Location) -> @TypedExpr<T>
-  {
-    self.params.push(@expr::Param::<T>(name.clone(), location) as @Expr);
+    pub fn named_param<T: 'static + CLType>(@mut self, name: ~str, location: Location) -> @TypedExpr<T> {
+        self.params.push(@expr::Param::<T>(name.clone(), location) as @Expr);
 
-    // FIXME: return an rvalue if the location is const?
-    @expr::LValue(expr::LVariable(name, location), self)
-  }
+        // FIXME: return an rvalue if the location is const?
+        @expr::LValue(expr::LVariable(name, location), self)
+    }
 
-  pub fn named_var<T: 'static + CLType>(@mut self, name: ~str) -> @TypedExpr<T>
-  {
-    self.exprs.push(@expr::Declare::<T>(name.clone(), expr::Nowhere) as @Expr);
+    pub fn named_var<T: 'static + CLType>(@mut self, name: ~str) -> @TypedExpr<T> {
+        self.exprs.push(@expr::Declare::<T>(name.clone(), expr::Nowhere) as @Expr);
 
-    @expr::LValue(expr::LVariable(name, expr::Nowhere), self)
-  }
+        @expr::LValue(expr::LVariable(name, expr::Nowhere), self)
+    }
 
-  fn var_nodecl<T: 'static + CLType>(@mut self) -> @TypedExpr<T>
-  {
-    let res = @expr::LValue(expr::LVariable(~"rs2cl_v" + self.last_var_id.to_str(), expr::Nowhere), self);
+    fn var_nodecl<T: 'static + CLType>(@mut self) -> @TypedExpr<T> {
+        let res = @expr::LValue(expr::LVariable(~"rs2cl_v" + self.last_var_id.to_str(), expr::Nowhere), self);
 
-    self.last_var_id = self.last_var_id + 1;
+        self.last_var_id = self.last_var_id + 1;
 
-    res
-  }
+        res
+    }
 
-  // FIXME: implement else_ and elif_
-  pub fn if_(@mut self, cond: @TypedExpr<bool>, f: &fn())
-  {
-    self.exprs.push(@branching::If(cond) as @Expr);
-    f();
-    self.exprs.push(@branching::End as @Expr);
-  }
+    // FIXME: implement else_ and elif_
+    pub fn if_(@mut self, cond: @TypedExpr<bool>, f: &fn()) {
+        self.exprs.push(@branching::If(cond) as @Expr);
+        f();
+        self.exprs.push(@branching::End as @Expr);
+    }
 
-  pub fn iterate(@mut self, begin: @TypedExpr<i32>, end: @TypedExpr<i32>, f: &fn(@TypedExpr<i32>))
-  {
-    let i = self.var_nodecl::<i32>();
+    pub fn iterate(@mut self, begin: @TypedExpr<i32>, end: @TypedExpr<i32>, f: &fn(@TypedExpr<i32>)) {
+        let i = self.var_nodecl::<i32>();
 
-    self.exprs.push(@branching::Iterate::new(begin, end, i) as @Expr);
-    f(i);
-    self.exprs.push(@branching::End as @Expr);
-  }
+        self.exprs.push(@branching::Iterate::new(begin, end, i) as @Expr);
+        f(i);
+        self.exprs.push(@branching::End as @Expr);
+    }
 }
 
-impl ToStr for Kernel
-{
-  fn to_str(&self) -> ~str
-  {
-    let mut indent = Indent::new();
+impl ToStr for Kernel {
+    fn to_str(&self) -> ~str {
+        let mut indent = Indent::new();
 
-    let mut res = ~"";
-    
-    // pragmas
-    for p in self.pragmas.iter()
-    { res = res + p.to_str() + "\n" }
+        let mut res = ~"";
 
-    if !self.pragmas.is_empty()
-    { res = res + "\n" }
-    
-    // signature
-    res = res + "__kernel void " + self.name.clone() + "(\n";
+        // pragmas
+        for p in self.pragmas.iter() {
+            res = res + p.to_str() + "\n"
+        }
 
-    indent.offset = 4;
+        if !self.pragmas.is_empty() {
+            res = res + "\n"
+        }
 
-    let mut iter = self.params.iter();
+        // signature
+        res = res + "__kernel void " + self.name.clone() + "(\n";
 
-    match iter.next()
-    {
-      Some(exp) => {
-        res = res + exp.to_cl_str(&mut indent);
-        for p in iter
-        { res = res + ",\n" + p.to_cl_str(&mut indent) }
-      },
-      None => { },
+        indent.offset = 4;
+
+        let mut iter = self.params.iter();
+
+        match iter.next() {
+            Some(exp) => {
+                res = res + exp.to_cl_str(&mut indent);
+                for p in iter {
+                    res = res + ",\n" + p.to_cl_str(&mut indent)
+                }
+            },
+            None => { },
+        }
+
+        res = res + "\n)\n";
+
+        // body
+        res = res + "{\n";
+
+        indent.offset = 2;
+
+        for e in self.exprs.iter() {
+            res = res + e.to_cl_str(&mut indent) + "\n"
+        }
+
+        res = res + "}\n";
+
+        res
     }
-
-    res = res + "\n)\n";
-
-    // body
-    res = res + "{\n";
-
-    indent.offset = 2;
-
-    for e in self.exprs.iter()
-    { res = res + e.to_cl_str(&mut indent) + "\n" }
-
-    res = res + "}\n";
-
-    res
-  }
 }

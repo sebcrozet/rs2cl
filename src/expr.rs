@@ -6,8 +6,7 @@ use indent::Indent;
 use cl_logic::{ClEq, ClOrd};
 use cl_type::CLType;
 
-pub enum Location
-{
+pub enum Location {
     Global,
     Local,
     Private,
@@ -15,12 +14,9 @@ pub enum Location
     Nowhere
 }
 
-impl ToStr for Location
-{
-    fn to_str(&self) -> ~str
-    {
-        match *self
-        {
+impl ToStr for Location {
+    fn to_str(&self) -> ~str {
+        match *self {
             Global  => ~"__global ",
             Local   => ~"__local ",
             Private => ~"__private ",
@@ -30,14 +26,12 @@ impl ToStr for Location
     }
 }
 
-pub trait Expr
-{
+pub trait Expr {
     fn to_cl_str(&self, indent: &mut Indent) -> ~str;
 }
 
 // XXX: make all the constructors private!
-pub enum UntypedExpr<T>
-{
+pub enum UntypedExpr<T> {
     Param(~str, Location),
     Declare(~str, Location),
     Assign(LValue<T>, @TypedExpr<T>),
@@ -45,26 +39,21 @@ pub enum UntypedExpr<T>
     StrExpr(~str)
 }
 
-pub enum TypedExpr<T>
-{
+pub enum TypedExpr<T> {
     RValue(RValue<T>),
     LValue(LValue<T>, @mut kernel::Kernel)
 }
 
-pub enum LValue<T>
-{
+pub enum LValue<T> {
     // LValue
     LVariable(~str, Location),
     LIndexed(@Expr, @TypedExpr<i32>),
     LStrExpr(~str), // NOTE: unsafe
 }
 
-impl<T> Clone for LValue<T>
-{
-    fn clone(&self) -> LValue<T>
-    {
-        match *self
-        {
+impl<T> Clone for LValue<T> {
+    fn clone(&self) -> LValue<T> {
+        match *self {
             LVariable(ref a, b) => LVariable(a.clone(), b),
             LIndexed(a, b)      => LIndexed(a, b),
             LStrExpr(ref a)     => LStrExpr(a.clone()), // NOTE: unsafe
@@ -72,24 +61,20 @@ impl<T> Clone for LValue<T>
     }
 }
 
-pub enum RValue<T>
-{
+pub enum RValue<T> {
     RIndexed(@Expr, @TypedExpr<i32>),
     RLiteral(T),
     RStrExpr(~str), // NOTE: unsafe
     ParenthesedOp(@Expr)
 }
 
-struct UnaryOperation<N1, N2>
-{
+struct UnaryOperation<N1, N2> {
     val: @TypedExpr<N1>,
     op:  UnOp
 }
 
-impl<N1, N2> UnaryOperation<N1, N2>
-{
-    pub fn new(val: @TypedExpr<N1>, op: UnOp) -> UnaryOperation<N1, N2>
-    {
+impl<N1, N2> UnaryOperation<N1, N2> {
+    pub fn new(val: @TypedExpr<N1>, op: UnOp) -> UnaryOperation<N1, N2> {
         UnaryOperation {
             val: val,
             op:  op
@@ -97,17 +82,14 @@ impl<N1, N2> UnaryOperation<N1, N2>
     }
 }
 
-struct BinaryOperation<N1, N2, N3>
-{
+struct BinaryOperation<N1, N2, N3> {
     val1: @TypedExpr<N1>,
     val2: @TypedExpr<N2>,
     op:   BinOp
 }
 
-impl<N1, N2, N3> BinaryOperation<N1, N2, N3>
-{
-    pub fn new(val1: @TypedExpr<N1>, val2: @TypedExpr<N2>, op: BinOp) -> BinaryOperation<N1, N2, N3>
-    {
+impl<N1, N2, N3> BinaryOperation<N1, N2, N3> {
+    pub fn new(val1: @TypedExpr<N1>, val2: @TypedExpr<N2>, op: BinOp) -> BinaryOperation<N1, N2, N3> {
         BinaryOperation {
             val1: val1,
             val2: val2,
@@ -116,21 +98,18 @@ impl<N1, N2, N3> BinaryOperation<N1, N2, N3>
     }
 }
 
-struct TernaryOperation<N1, N2, N3, N4>
-{
+struct TernaryOperation<N1, N2, N3, N4> {
     val1: @TypedExpr<N1>,
     val2: @TypedExpr<N2>,
     val3: @TypedExpr<N3>,
     op:   TernOp
 }
 
-impl<N1, N2, N3, N4> TernaryOperation<N1, N2, N3, N4>
-{
+impl<N1, N2, N3, N4> TernaryOperation<N1, N2, N3, N4> {
     pub fn new(val1: @TypedExpr<N1>,
     val2: @TypedExpr<N2>,
     val3: @TypedExpr<N3>,
-    op: TernOp) -> TernaryOperation<N1, N2, N3, N4>
-    {
+    op: TernOp) -> TernaryOperation<N1, N2, N3, N4> {
         TernaryOperation {
             val1: val1,
             val2: val2,
@@ -140,8 +119,7 @@ impl<N1, N2, N3, N4> TernaryOperation<N1, N2, N3, N4>
     }
 }
 
-enum UnOp
-{
+enum UnOp {
     Negate,
     Normalize,
     Length,
@@ -150,8 +128,7 @@ enum UnOp
     Cbrt
 }
 
-enum BinOp
-{
+enum BinOp {
     Plus,
     Minus,
     Multiply,
@@ -169,18 +146,14 @@ enum BinOp
     Hypot
 }
 
-enum TernOp
-{
+enum TernOp {
     Clamp
 }
 
-impl<T: CLType> Expr for UntypedExpr<T>
-{
-    fn to_cl_str(&self, indent: &mut Indent) -> ~str
-    {
+impl<T: CLType> Expr for UntypedExpr<T> {
+    fn to_cl_str(&self, indent: &mut Indent) -> ~str {
         indent.to_str() +
-            match *self
-            {
+            match *self {
                 Param(ref name,   ref location) => location.to_str() + CLType::to_cl_type_str(None::<T>) + " " + *name,
                 Declare(ref name, ref location) => location.to_str() + CLType::to_cl_type_str(None::<T>) + " " + *name + ";",
                 Assign(ref left,  ref right)    => left.to_cl_str(indent) + " = " + right.to_cl_str(indent) + ";",
@@ -189,24 +162,18 @@ impl<T: CLType> Expr for UntypedExpr<T>
     }
 }
 
-impl<T: CLType> Expr for TypedExpr<T>
-{
-    fn to_cl_str(&self, indent: &mut Indent) -> ~str
-    {
-        match *self
-        {
+impl<T: CLType> Expr for TypedExpr<T> {
+    fn to_cl_str(&self, indent: &mut Indent) -> ~str {
+        match *self {
             RValue(ref rval)    => rval.to_cl_str(indent),
             LValue(ref lval, _) => lval.to_cl_str(indent)
         }
     }
 }
 
-impl<T: CLType> Expr for RValue<T>
-{
-    fn to_cl_str(&self, indent: &mut Indent) -> ~str
-    {
-        match *self
-        {
+impl<T: CLType> Expr for RValue<T> {
+    fn to_cl_str(&self, indent: &mut Indent) -> ~str {
+        match *self {
             RIndexed(ref val, ref idx) => val.to_cl_str(indent) + "[" + idx.to_cl_str(indent) + "]",
             RLiteral(ref val)          => val.to_cl_literal_str(),
             RStrExpr(ref expr)         => expr.clone(),
@@ -215,12 +182,9 @@ impl<T: CLType> Expr for RValue<T>
     }
 }
 
-impl<T> Expr for LValue<T>
-{
-    fn to_cl_str(&self, indent: &mut Indent) -> ~str
-    {
-        match *self
-        {
+impl<T> Expr for LValue<T> {
+    fn to_cl_str(&self, indent: &mut Indent) -> ~str {
+        match *self {
             LIndexed(ref val, ref idx) => val.to_cl_str(indent) + "[" + idx.to_cl_str(indent) + "]",
             LVariable(ref name, _)     => name.clone(),
             LStrExpr(ref expr)         => expr.clone()
@@ -228,14 +192,11 @@ impl<T> Expr for LValue<T>
     }
 }
 
-impl<N1: CLType, N2> Expr for UnaryOperation<N1, N2>
-{
-    fn to_cl_str(&self, indent: &mut Indent) -> ~str
-    {
+impl<N1: CLType, N2> Expr for UnaryOperation<N1, N2> {
+    fn to_cl_str(&self, indent: &mut Indent) -> ~str {
         let v1 = self.val.to_cl_str(indent);
 
-        match self.op
-        {
+        match self.op {
             Negate    => "-" + v1,
             Length    => "length("    + v1 + ")",
             Normalize => "normalize(" + v1 + ")",
@@ -246,15 +207,12 @@ impl<N1: CLType, N2> Expr for UnaryOperation<N1, N2>
     }
 }
 
-impl<N1: CLType, N2: CLType, N3> Expr for BinaryOperation<N1, N2, N3>
-{
-    fn to_cl_str(&self, indent: &mut Indent) -> ~str
-    {
+impl<N1: CLType, N2: CLType, N3> Expr for BinaryOperation<N1, N2, N3> {
+    fn to_cl_str(&self, indent: &mut Indent) -> ~str {
         let v1 = self.val1.to_cl_str(indent);
         let v2 = self.val2.to_cl_str(indent);
 
-        match self.op
-        {
+        match self.op {
             Plus     => v1 + " + "  + v2,
             Minus    => v1 + " - "  + v2,
             Multiply => v1 + " * "  + v2,
@@ -274,39 +232,30 @@ impl<N1: CLType, N2: CLType, N3> Expr for BinaryOperation<N1, N2, N3>
     }
 }
 
-impl<N1: CLType, N2: CLType, N3: CLType, N4> Expr for TernaryOperation<N1, N2, N3, N4>
-{
-    fn to_cl_str(&self, indent: &mut Indent) -> ~str
-    {
+impl<N1: CLType, N2: CLType, N3: CLType, N4> Expr for TernaryOperation<N1, N2, N3, N4> {
+    fn to_cl_str(&self, indent: &mut Indent) -> ~str {
         let v1 = self.val1.to_cl_str(indent);
         let v2 = self.val2.to_cl_str(indent);
         let v3 = self.val3.to_cl_str(indent);
 
-        match self.op
-        {
+        match self.op {
             Clamp => "clamp(" + v1 + ", " + v2 + ", " + v3 + ")"
         }
     }
 }
 
-impl<T: 'static + CLType> Index<@TypedExpr<i32>, @TypedExpr<T>> for @TypedExpr<~[T]>
-{
-    fn index(&self, idx: &@TypedExpr<i32>) -> @TypedExpr<T>
-    {
-        match **self
-        {
+impl<T: 'static + CLType> Index<@TypedExpr<i32>, @TypedExpr<T>> for @TypedExpr<~[T]> {
+    fn index(&self, idx: &@TypedExpr<i32>) -> @TypedExpr<T> {
+        match **self {
             LValue(_, parent) => @LValue(LIndexed(*self as @Expr, *idx), parent),
             RValue(_)         => @RValue(RIndexed(*self as @Expr, *idx))
         }
     }
 }
 
-impl<T: 'static + CLType> TypedExpr<T>
-{
-    pub fn assign(@self, val: @TypedExpr<T>) -> @UntypedExpr<T>
-    {
-        match *self
-        {
+impl<T: 'static + CLType> TypedExpr<T> {
+    pub fn assign(@self, val: @TypedExpr<T>) -> @UntypedExpr<T> {
+        match *self {
             LValue(ref l, parent) => {
                 let res = @Assign(l.clone(), val);
 
@@ -319,10 +268,8 @@ impl<T: 'static + CLType> TypedExpr<T>
     }
 }
 
-impl kernel::Kernel
-{
-    pub unsafe fn untyped_str(@mut self, string: ~str) -> @UntypedExpr<u32>
-    {
+impl kernel::Kernel {
+    pub unsafe fn untyped_str(@mut self, string: ~str) -> @UntypedExpr<u32> {
         let res = @StrExpr(string);
 
         self.push_expr(res);
@@ -330,96 +277,102 @@ impl kernel::Kernel
         res
     }
 
-    pub unsafe fn lval_str<T: 'static>(@mut self, string: ~str) -> @TypedExpr<T>
-    { @LValue(LStrExpr(string), self) }
+    pub unsafe fn lval_str<T: 'static>(@mut self, string: ~str) -> @TypedExpr<T> {
+        @LValue(LStrExpr(string), self)
+    }
 
-    pub unsafe fn rval_str<T: 'static>(@mut self, string: ~str) -> @TypedExpr<T>
-    { @RValue(RStrExpr(string)) }
+    pub unsafe fn rval_str<T: 'static>(@mut self, string: ~str) -> @TypedExpr<T> {
+        @RValue(RStrExpr(string))
+    }
 }
 
-pub fn literal<T: 'static>(val: T) -> @TypedExpr<T>
-{ @RValue(RLiteral(val)) }
+pub fn literal<T: 'static>(val: T) -> @TypedExpr<T> {
+    @RValue(RLiteral(val))
+}
 
 /*
  * Impl math operations
  */
-impl<N: Zero> Zero for TypedExpr<N>
-{
-    fn zero() -> TypedExpr<N>
-    { RValue(RLiteral(Zero::zero())) }
+impl<N: Zero> Zero for TypedExpr<N> {
+    fn zero() -> TypedExpr<N> {
+        RValue(RLiteral(Zero::zero()))
+    }
 
-    fn is_zero(&self) -> bool
-    { fail!("is_zero cannot be evaluated on an openCL cl-expression.") }
+    fn is_zero(&self) -> bool {
+        fail!("is_zero cannot be evaluated on an openCL cl-expression.")
+    }
 }
 
-impl<N: 'static + One> One for @TypedExpr<N>
-{
-    fn one() -> @TypedExpr<N>
-    { @RValue(RLiteral(One::one())) }
+impl<N: 'static + One> One for @TypedExpr<N> {
+    fn one() -> @TypedExpr<N> {
+        @RValue(RLiteral(One::one()))
+    }
 }
 
 impl<N1: 'static + Add<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
-Add<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
-{
-    fn add(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Plus) as @Expr)) }
+Add<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1> {
+    fn add(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Plus) as @Expr))
+    }
 }
 
 impl<N1: 'static + Sub<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
-Sub<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
-{
-    fn sub(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Minus) as @Expr)) }
+Sub<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1> {
+    fn sub(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Minus) as @Expr))
+    }
 }
 
 impl<N1: 'static + Mul<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
-Mul<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
-{
-    fn mul(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Multiply) as @Expr)) }
+Mul<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1> {
+    fn mul(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Multiply) as @Expr))
+    }
 }
 
 impl<N1: 'static + Div<N2, N3> + CLType, N2: 'static + CLType, N3: 'static>
-Div<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1>
-{
-    fn div(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Divide) as @Expr)) }
+Div<@TypedExpr<N2>, @TypedExpr<N3>> for @TypedExpr<N1> {
+    fn div(&self, other: &@TypedExpr<N2>) -> @TypedExpr<N3> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N1, N2, N3>::new(*self, *other, Divide) as @Expr))
+    }
 }
 
-impl<N: 'static + Eq + CLType> ClEq<@TypedExpr<bool>> for @TypedExpr<N>
-{
-    fn cl_eq(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Estrict) as @Expr)) }
+impl<N: 'static + Eq + CLType> ClEq<@TypedExpr<bool>> for @TypedExpr<N> {
+    fn cl_eq(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Estrict) as @Expr))
+    }
 
-    fn cl_ne(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, NEstrict) as @Expr)) }
+    fn cl_ne(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, NEstrict) as @Expr))
+    }
 }
 
-impl<N: 'static + Ord + CLType> ClOrd<@TypedExpr<bool>> for @TypedExpr<N>
-{
-    fn cl_ge(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Geq) as @Expr)) }
+impl<N: 'static + Ord + CLType> ClOrd<@TypedExpr<bool>> for @TypedExpr<N> {
+    fn cl_ge(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Geq) as @Expr))
+    }
 
-    fn cl_gt(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Gstrict) as @Expr)) }
+    fn cl_gt(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Gstrict) as @Expr))
+    }
 
-    fn cl_le(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Leq) as @Expr)) }
+    fn cl_le(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Leq) as @Expr))
+    }
 
-    fn cl_lt(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Lstrict) as @Expr)) }
+    fn cl_lt(&self, other: &@TypedExpr<N>) -> @TypedExpr<bool> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, bool>::new(*self, *other, Lstrict) as @Expr))
+    }
 }
 
-impl<V: 'static + Vec<N> + CLType, N: 'static + CLType> Vec<@TypedExpr<N>> for @TypedExpr<V>
-{
-    fn dot(&self, other: &@TypedExpr<V>) -> @TypedExpr<N>
-    { @RValue(ParenthesedOp(@BinaryOperation::<V, V, N>::new(*self, *other, Dot) as @Expr)) }
+impl<V: 'static + Vec<N> + CLType, N: 'static + CLType> Vec<@TypedExpr<N>> for @TypedExpr<V> {
+    fn dot(&self, other: &@TypedExpr<V>) -> @TypedExpr<N> {
+        @RValue(ParenthesedOp(@BinaryOperation::<V, V, N>::new(*self, *other, Dot) as @Expr))
+    }
 }
 
-impl<N: 'static + Ord + CLType> Ord for TypedExpr<N>
-{
-    fn lt(&self, _: &TypedExpr<N>) -> bool
-    {
+impl<N: 'static + Ord + CLType> Ord for TypedExpr<N> {
+    fn lt(&self, _: &TypedExpr<N>) -> bool {
         fail!("Usual comparison operators cannot be used with gpu expressions." +
               " See the `ClOrd` trait for comparison functions.")
     }
@@ -444,38 +397,35 @@ impl<V: 'static + Dim + CLType> Dim for @TypedExpr<V> {
     }
 }
 
-impl<N: 'static + Orderable + CLType> Orderable for @TypedExpr<N>
-{
-    fn min(&self, other: &@TypedExpr<N>) -> @TypedExpr<N>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, N>::new(*self, *other, Min) as @Expr)) }
+impl<N: 'static + Orderable + CLType> Orderable for @TypedExpr<N> {
+    fn min(&self, other: &@TypedExpr<N>) -> @TypedExpr<N> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, N>::new(*self, *other, Min) as @Expr))
+    }
 
-    fn max(&self, other: &@TypedExpr<N>) -> @TypedExpr<N>
-    { @RValue(ParenthesedOp(@BinaryOperation::<N, N, N>::new(*self, *other, Max) as @Expr)) }
+    fn max(&self, other: &@TypedExpr<N>) -> @TypedExpr<N> {
+        @RValue(ParenthesedOp(@BinaryOperation::<N, N, N>::new(*self, *other, Max) as @Expr))
+    }
 
-    fn clamp(&self, mn: &@TypedExpr<N>, mx: &@TypedExpr<N>) -> @TypedExpr<N>
-    { @RValue(ParenthesedOp(@TernaryOperation::<N, N, N, N>::new(*self, *mn, *mx, Clamp) as @Expr)) }
+    fn clamp(&self, mn: &@TypedExpr<N>, mx: &@TypedExpr<N>) -> @TypedExpr<N> {
+        @RValue(ParenthesedOp(@TernaryOperation::<N, N, N, N>::new(*self, *mn, *mx, Clamp) as @Expr))
+    }
 }
 
 impl<V: 'static + AlgebraicVec<N> + CLType, N: 'static + Algebraic + CLType>
-AlgebraicVec<@TypedExpr<N>> for @TypedExpr<V>
-{
-    fn norm(&self) -> @TypedExpr<N>
-    {
+AlgebraicVec<@TypedExpr<N>> for @TypedExpr<V> {
+    fn norm(&self) -> @TypedExpr<N> {
         @RValue(ParenthesedOp(@UnaryOperation::<V, N>::new(*self, Length) as @Expr))
     }
 
-    fn sqnorm(&self) -> @TypedExpr<N>
-    {
+    fn sqnorm(&self) -> @TypedExpr<N> {
         fail!("Not yet implemented.");
     }
 
-    fn normalized(&self) -> @TypedExpr<V>
-    {
+    fn normalized(&self) -> @TypedExpr<V> {
         @RValue(ParenthesedOp(@UnaryOperation::<V, V>::new(*self, Normalize) as @Expr))
     }
 
-    fn normalize(&mut self) -> @TypedExpr<N>
-    {
+    fn normalize(&mut self) -> @TypedExpr<N> {
         fail!("Not yet implemented.");
     }
 }
