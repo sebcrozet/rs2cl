@@ -2,16 +2,16 @@ tmp=_git_distcheck
 
 all:
 	mkdir -p lib
-	rust build src/rs2cl.rc -Lnalgebra/lib --opt-level=3 --out-dir lib
+	rust build src/rs2cl.rc -Llib/nalgebra/lib --opt-level=3 --out-dir lib
 
 examples: test
 
 test:
 	mkdir -p bin
-	rust build --opt-level=3 --out-dir bin -L nalgebra/lib examples/addition.rs
+	rust build --opt-level=3 --out-dir bin -L lib/nalgebra/lib examples/addition.rs
 
 deps:
-	make -C nalgebra
+	make -C lib/nalgebra
 
 
 distcheck:
