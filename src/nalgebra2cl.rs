@@ -1,13 +1,9 @@
 // XXX: this should be a separate library?
-use std::libc;
-use std::sys;
-use std::ptr;
 use std::num::Zero;
 use nalgebra::traits::vector::{Vec, AlgebraicVec};
 use nalgebra::traits::dim::Dim;
 use nalgebra::vec::Vec3;
 use cl_type::CLType;
-use OpenCL;
 
 // FIXME make this generic wrt the float type?
 #[deriving(Eq, ToStr, Clone)]
@@ -22,13 +18,6 @@ impl CLVec3f64 {
             val:     val,
             padding: 0.0
         }
-    }
-}
-
-impl OpenCL::vector::VectorType for CLVec3f64;
-impl OpenCL::hl::KernelArg for CLVec3f64 {
-    fn get_value(&self) -> (libc::size_t, *libc::c_void) {
-        (sys::size_of::<CLVec3f64>() as libc::size_t, ptr::to_unsafe_ptr(self) as *libc::c_void)
     }
 }
 

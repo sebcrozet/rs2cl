@@ -7,7 +7,6 @@
 
 extern mod std;
 extern mod nalgebra;
-extern mod OpenCL;
 
 pub mod expr;
 pub mod kernel;
