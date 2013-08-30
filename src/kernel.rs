@@ -15,8 +15,8 @@ pub struct Kernel {
 }
 
 impl Kernel {
-    pub fn new(name: ~str) -> Kernel {
-        Kernel {
+    pub fn new(name: ~str) -> @mut Kernel {
+        @mut Kernel {
             name:          name,
             last_param_id: 0,
             last_var_id:   0,

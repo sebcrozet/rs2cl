@@ -17,7 +17,7 @@ use pragma;
 #[test]
 fn addition()
 {
-    let k = @mut Kernel::new(~"add");
+    let k = Kernel::new(~"add");
 
     k.enable_extension(pragma::cl_khr_fp64);
 
