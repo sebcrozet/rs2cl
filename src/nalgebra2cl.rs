@@ -1,108 +1,17 @@
-// XXX: this should be a separate library?
-use std::num::Zero;
-use nalgebra::traits::vector::{Vec, AlgebraicVec};
-use nalgebra::traits::dim::Dim;
 use nalgebra::vec::Vec3;
 use cl_type::CLType;
 
-// FIXME make this generic wrt the float type?
-#[deriving(Eq, ToStr, Clone)]
-pub struct CLVec3f64 {
-    val:          Vec3<f64>,
-    priv padding: f64
-}
-
-impl CLVec3f64 {
-    pub fn new(val: Vec3<f64>) -> CLVec3f64  {
-        CLVec3f64 {
-            val:     val,
-            padding: 0.0
-        }
-    }
-}
-
-impl CLType for CLVec3f64 {
-    fn to_cl_type_str(_: Option<CLVec3f64>) -> ~str {
-        ~"double4"
+// FIXME: really 4 ?
+impl<N: CLType + ToStr> CLType for Vec3<N>{
+    fn to_cl_type_str(_: Option<Vec3<N>>) -> ~str {
+        CLType::to_cl_type_str(None::<N>) + "4"
     }
 
     fn to_cl_literal_str(&self) -> ~str {
-        ~"double4(" +
-            self.val.x.to_str() + ", " +
-            self.val.y.to_str() + ", " +
-            self.val.z.to_str() + ", " +
-            "0.0" +
-            ")"
-    }
-}
-
-// trait implementation forwarding
-impl Zero for CLVec3f64 {
-    fn zero() -> CLVec3f64 {
-        CLVec3f64::new(Zero::zero())
-    }
-
-    fn is_zero(&self) -> bool {
-        self.val.is_zero()
-    }
-}
-
-impl Dim for CLVec3f64 {
-    fn dim(_: Option<CLVec3f64>) -> uint {
-        3
-    }
-}
-
-impl Neg<CLVec3f64> for CLVec3f64 {
-    fn neg(&self) -> CLVec3f64 {
-        CLVec3f64::new(-self.val)
-    }
-}
-
-impl Div<f64, CLVec3f64> for CLVec3f64 {
-    fn div(&self, d: &f64) -> CLVec3f64 {
-        CLVec3f64::new(self.val / *d)
-    }
-}
-
-impl AlgebraicVec<f64> for CLVec3f64 {
-    fn norm(&self) -> f64 {
-        self.val.norm()
-    }
-
-    fn sqnorm(&self) -> f64 {
-        self.val.sqnorm()
-    }
-
-    fn normalized(&self) -> CLVec3f64 {
-        CLVec3f64::new(self.val.normalized())
-    }
-
-    fn normalize(&mut self) -> f64 {
-        self.val.normalize()
-    }
-}
-
-impl Vec<f64> for CLVec3f64 {
-    fn dot(&self, other: &CLVec3f64) -> f64 {
-        self.val.dot(&other.val)
-    }
-}
-
-impl Add<CLVec3f64, CLVec3f64> for CLVec3f64 {
-    fn add(&self, other: &CLVec3f64) -> CLVec3f64 {
-        CLVec3f64::new(self.val + other.val)
-    }
-}
-
-impl Sub<CLVec3f64, CLVec3f64> for CLVec3f64 {
-    fn sub(&self, other: &CLVec3f64) -> CLVec3f64 {
-        CLVec3f64::new(self.val - other.val)
-    }
-}
-
-impl Mul<f64, CLVec3f64> for CLVec3f64 {
-    fn mul(&self, val: &f64) -> CLVec3f64 {
-        CLVec3f64::new(self.val * *val)
+        CLType::to_cl_type_str(None::<Vec3<N>>) + "(" +
+            self.x.to_str() + ", " +
+            self.y.to_str() + ", " +
+            self.z.to_str() + ", " +
+            "0.0" + ")"
     }
 }
