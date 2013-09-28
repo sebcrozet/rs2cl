@@ -1,6 +1,5 @@
 use std::num::{Zero, One};
-use nalgebra::traits::vector::{Vec, AlgebraicVec};
-use nalgebra::traits::dim::Dim;
+use nalgebra::vec::{Vec, AlgebraicVec, Dim, Dot, Norm};
 use kernel;
 use indent::Indent;
 use cl_logic::{ClEq, ClOrd};
@@ -365,9 +364,13 @@ impl<N: 'static + Ord + CLType> ClOrd<@TypedExpr<bool>> for @TypedExpr<N> {
     }
 }
 
-impl<V: 'static + Vec<N> + CLType, N: 'static + CLType> Vec<@TypedExpr<N>> for @TypedExpr<V> {
+impl<V: 'static + Vec<N> + CLType, N: 'static + CLType> Dot<@TypedExpr<N>> for @TypedExpr<V> {
     fn dot(&self, other: &@TypedExpr<V>) -> @TypedExpr<N> {
         @RValue(ParenthesedOp(@BinaryOperation::<V, V, N>::new(*self, *other, Dot) as @Expr))
+    }
+
+    fn sub_dot(&self, b: &@TypedExpr<V>, c: &@TypedExpr<V>) -> @TypedExpr<N> {
+        (self - *b).dot(c)
     }
 }
 
@@ -412,7 +415,7 @@ impl<N: 'static + Orderable + CLType> Orderable for @TypedExpr<N> {
 }
 
 impl<V: 'static + AlgebraicVec<N> + CLType, N: 'static + Algebraic + CLType>
-AlgebraicVec<@TypedExpr<N>> for @TypedExpr<V> {
+Norm<@TypedExpr<N>> for @TypedExpr<V> {
     fn norm(&self) -> @TypedExpr<N> {
         @RValue(ParenthesedOp(@UnaryOperation::<V, N>::new(*self, Length) as @Expr))
     }

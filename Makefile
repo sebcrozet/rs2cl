@@ -8,7 +8,7 @@ examples: test
 
 test:
 	mkdir -p bin
-	rust build --opt-level=3 --out-dir bin -L lib/nalgebra/lib examples/addition.rs
+	rust build --opt-level=3 --out-dir bin -L lib/nalgebra/lib -Llib examples/addition.rs
 
 deps:
 	make -C lib/nalgebra
